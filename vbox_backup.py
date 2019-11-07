@@ -52,8 +52,8 @@ def create_snapshot(mach: str, backup_dir: str):
     now = datetime.now()
     datetimeReadable = now.strftime('%I-%M-%S-%m_%d_%Y')
 
-    # Take a live snapshot of the vm
     backup_name = '{0}-backup-{1}'.format(mach, datetimeReadable)
+    print('Creating live snapshot of VM')
     subprocess.call(['VBoxManage', 'snapshot', mach, 'take', backup_name, '--live'], stdout=subprocess.PIPE)
 
     # Verify snapshot was made by requerying
@@ -91,9 +91,14 @@ def main():
     # virtualbox_directory
 
     for mach in machines:
+        # Before running VBoxManage commands, ensure the VMs exist.
+        if not os.path.exists(os.path.join(virtualbox_directory, mach)):
+            print('Machine name {} does not exist. Trying next name given.'.format(mach))
+            continue
+
         snapshot_name = create_snapshot(mach, backup_directory)
 
-        # Create VM clone from snapshot
+        print('Creating VM clone from snapshot')
         subprocess.call(['VBoxManage', 'clonevm', mach, '--snapshot', snapshot_name, '--name', snapshot_name])
         # '--options',
         #   'keepallmacs'
@@ -101,22 +106,23 @@ def main():
         #   'keepdisknames'
 
         # Make a designated Clones folder for each vm inside the backup folder
-        mach_clones_dir = os.path.join(backup_directory, '{}-Clones'.format(mach))
+        mach_backup_dir = os.path.join(backup_directory, '{}-Clones'.format(mach))
 
-        print('{} Clones saved to {}'.format(mach, mach_clones_dir))
-        if not os.path.exists(mach_clones_dir):
-            os.makedirs(mach_clones_dir)
+        print('{} clones saved to {}'.format(mach, mach_backup_dir))
+        if not os.path.exists(mach_backup_dir):
+            os.makedirs(mach_backup_dir)
 
         clone_dir = os.path.join(virtualbox_directory, snapshot_name)
 
         snapshot_with_ext = '{}{}'.format(snapshot_name, '.vdi')
 
         clone = os.path.join(clone_dir, snapshot_with_ext)
-        cp_dest = os.path.join(mach_clones_dir, snapshot_with_ext)
+        cp_dest = os.path.join(mach_backup_dir, snapshot_with_ext)
 
+        print('Copying clone to that directory . . .')
         shutil.copy(clone, cp_dest)
 
-        # (copy using ftp?)
+        print('Done.\n')
 
 
 if __name__ == "__main__":
