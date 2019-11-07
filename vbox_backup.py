@@ -39,13 +39,13 @@ def get_snapshot_uuids(mach: str) -> List[str]:
             print('UUIDs from VBoxManage list command were retrieved incorrectly.')
             raise
 
-    print(snapshots)
     return snapshots
 
 
 def create_snapshot(mach: str, backup_dir: str):
     snapshots = get_snapshot_uuids(mach)
 
+    print('Deleting all old snapshots')
     for snap in snapshots:
         subprocess.call(['VBoxManage', 'snapshot', mach, 'delete', snap], stdout=subprocess.PIPE)
 
@@ -59,10 +59,11 @@ def create_snapshot(mach: str, backup_dir: str):
     # Verify snapshot was made by requerying
     snapshots = get_snapshot_uuids(mach)
     try:
-        snapshots[0]
+        new_snapshot = snapshots[0]
     except KeyError:
         print('New snapshot \'{}\' was not created. Abort'.format(backup_name))
         raise
+    print('Newly created snapshot UUID for {} is {}'.format(mach, new_snapshot))
 
     return backup_name
 
@@ -102,7 +103,7 @@ def main():
         # Make a designated Clones folder for each vm inside the backup folder
         mach_clones_dir = os.path.join(backup_directory, '{}-Clones'.format(mach))
 
-        print(mach_clones_dir)
+        print('{} Clones saved to {}'.format(mach, mach_clones_dir))
         if not os.path.exists(mach_clones_dir):
             os.makedirs(mach_clones_dir)
 
