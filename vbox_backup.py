@@ -2,6 +2,7 @@ from typing import List
 
 import argparse
 import os
+import shutil
 import subprocess
 import uuid
 
@@ -49,7 +50,7 @@ def create_snapshot(mach: str, backup_dir: str):
         subprocess.call(['VBoxManage', 'snapshot', mach, 'delete', snap], stdout=subprocess.PIPE)
 
     now = datetime.now()
-    datetimeReadable = now.strftime('%I-%m-%S-%m_%d_%Y')
+    datetimeReadable = now.strftime('%I-%M-%S-%m_%d_%Y')
 
     # Take a live snapshot of the vm
     backup_name = '{0}-backup-{1}'.format(mach, datetimeReadable)
@@ -64,22 +65,7 @@ def create_snapshot(mach: str, backup_dir: str):
         print('New snapshot \'{}\' was not created. Abort'.format(backup_name))
         raise
 
-    # Create VM clone from snapshot
-    subprocess.call(['VBoxManage', 'clonevm', mach, '--snapshot', new_snapshot, '--name', backup_name])
-    # '--options', 'keepallmacs'
-    # '--options', 'keephwuuids'
-    # '--options', 'keepdisknames'
-
-    # Make a designated Clones folder for each vm inside the backup folder
-    mach_clones_dir = os.path.join(backup_dir, '{}-Clones'.format(mach))
-
-    print(mach_clones_dir)
-    if not os.path.exists(mach_clones_dir):
-        os.makedirs(mach_clones_dir)
-
-    # Copy clone to the backup_dir
-    # (using ftp?)
-
+    return backup_name
 
 
 # testing on linux
@@ -92,6 +78,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('machines', type=str, nargs='+', help="Virtual Box machines to back up.")
     parser.add_argument('-b', '--backup_directory', help="Directory to send backups to.")
+    parser.add_argument('-v', '--virtualbox_directory', help="Virtual Box directory, to grab created clones.")
     args = parser.parse_args()
 
     print(args.machines)
@@ -101,7 +88,31 @@ def main():
     # C:\Users\{user}\'VirtualBox VMs'
 
     for mach in args.machines:
-        create_snapshot(mach, args.backup_directory)
+        snapshot_name = create_snapshot(mach, args.backup_directory)
+
+        # Create VM clone from snapshot
+        subprocess.call(['VBoxManage', 'clonevm', mach, '--snapshot', snapshot_name, '--name', snapshot_name])
+        # '--options',
+        #   'keepallmacs'
+        #   'keephwuuids'
+        #   'keepdisknames'
+
+        # Make a designated Clones folder for each vm inside the backup folder
+        mach_clones_dir = os.path.join(args.backup_directory, '{}-Clones'.format(mach))
+
+        print(mach_clones_dir)
+        if not os.path.exists(mach_clones_dir):
+            os.makedirs(mach_clones_dir)
+
+
+        # Win: C:\Users\chall\VirtualBox VMs
+        # Nix: /home/christian/VirtualBox VMs/
+
+        # Copy from that folder to new mach_clones_dir
+        clone = os.path.join(args.virtualbox_directory, snapshot_name)
+        shutil.copy(clone, mach_clones_dir)
+
+        # (copy using ftp?)
 
 
 if __name__ == "__main__":
