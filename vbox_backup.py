@@ -68,13 +68,6 @@ def create_snapshot(mach: str, backup_dir: str):
     return backup_name
 
 
-# Nix
-# python3 vbox_backup.py debian-test1 debian-test2 -b /home/christian/vm_backups -v /home/christian/"VirtualBox VMs"
-
-# Win
-# python vbox_backup.py empty-test -b C:/Users/chall/Documents/vm_backups -v C:/Users/chall/"VirtualBox VMs"
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('machines', type=str, nargs='+', help="Virtual Box machines to back up.")
@@ -86,12 +79,8 @@ def main():
     backup_directory = args.backup_directory
     virtualbox_directory = args.virtualbox_directory
 
-    # Verify that each machine is an actual folder in the default virtual box location, or ask for location of vms
-    # C:\Users\{user}\'VirtualBox VMs'
-    # virtualbox_directory
-
     for mach in machines:
-        # Before running VBoxManage commands, ensure the VMs exist.
+        # Before running VBoxManage commands, ensure the VM exists.
         if not os.path.exists(os.path.join(virtualbox_directory, mach)):
             print('Machine name {} does not exist. Trying next name given.'.format(mach))
             continue
